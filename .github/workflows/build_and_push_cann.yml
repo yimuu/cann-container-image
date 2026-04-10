@@ -25,6 +25,7 @@ on:
           - 9.0.0-beta.1-310p-openeuler24.03-py3.11
           - 9.0.0-beta.1-a3-ubuntu22.04-py3.11
           - 9.0.0-beta.1-a3-openeuler24.03-py3.11
+          - 8.5.1-910b-ubuntu22.04-py3.10
           - 8.5.1-910b-ubuntu22.04-py3.12
           - 8.5.1-910b-openeuler24.03-py3.12
           - 8.5.1-910-ubuntu22.04-py3.12
