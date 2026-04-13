@@ -11,16 +11,9 @@ on:
 
 jobs:
   only-build:
-    name: build 8.5.1-910b-ubuntu22.04-py3.10 (${{ matrix.arch }})
+    name: build 8.5.1-910b-ubuntu22.04-py3.10 (aarch64)
     if: ${{ !inputs.publish }}
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      matrix:
-        include:
-          - arch: x86_64
-            runner: linux-x86_64
-          - arch: aarch64
-            runner: ubuntu-22.04-arm
+    runs-on: ubuntu-22.04-arm
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,77 +31,17 @@ jobs:
         uses: docker/build-push-action@v6
         id: build
         with:
-          platforms: ${{ matrix.arch }}
+          platforms: aarch64
           file: ${{ github.workspace }}/cann/8.5.1-910b-ubuntu22.04-py3.10/Dockerfile
           context: ${{ github.workspace }}/cann/8.5.1-910b-ubuntu22.04-py3.10
-          outputs: type=oci,dest=/tmp/image-${{ matrix.arch }}.tar
+          outputs: type=docker,dest=/tmp/cann-8.5.1-910b-ubuntu22.04-py3.10-aarch64.tar
           provenance: false
 
       - name: Upload image artifact
         uses: actions/upload-artifact@v4
         with:
-          name: image-${{ matrix.arch }}
-          path: /tmp/image-${{ matrix.arch }}.tar
-          retention-days: 1
-
-  merge-multiarch:
-    name: merge multi-arch image
-    if: ${{ !inputs.publish }}
-    needs: only-build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download x86_64 artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: image-x86_64
-          path: /tmp/artifacts
-
-      - name: Download aarch64 artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: image-aarch64
-          path: /tmp/artifacts
-
-      - name: Start local registry
-        run: docker run -d -p 5000:5000 --name registry registry:2
-
-      - name: Configure buildx for insecure registry
-        run: |
-          cat > /tmp/buildkitd.toml << 'EOF'
-          [registry."localhost:5000"]
-            http = true
-            insecure = true
-          EOF
-          docker buildx create --use --name insecure-builder --config /tmp/buildkitd.toml
-
-      - name: Install crane
-        run: |
-          curl -sL https://github.com/google/go-containerregistry/releases/latest/download/go-containerregistry_Linux_x86_64.tar.gz \
-            | sudo tar -xz -C /usr/local/bin crane
-
-      - name: Push arch images to local registry
-        run: |
-          crane --insecure push /tmp/artifacts/image-x86_64.tar localhost:5000/cann:x86_64
-          crane --insecure push /tmp/artifacts/image-aarch64.tar localhost:5000/cann:aarch64
-
-      - name: Create multi-arch manifest
-        run: |
-          docker buildx imagetools create --insecure \
-            -t localhost:5000/cann:8.5.1-910b-ubuntu22.04-py3.10 \
-            localhost:5000/cann:x86_64 \
-            localhost:5000/cann:aarch64
-
-      - name: Export multi-arch image
-        run: |
-          skopeo copy --insecure-policy --src-tls-verify=false --all \
-            docker://localhost:5000/cann:8.5.1-910b-ubuntu22.04-py3.10 \
-            oci-archive:/tmp/cann-8.5.1-910b-ubuntu22.04-py3.10-multiarch.tar:8.5.1-910b-ubuntu22.04-py3.10
-
-      - name: Upload multi-arch artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cann-8.5.1-910b-ubuntu22.04-py3.10-multiarch
-          path: /tmp/cann-8.5.1-910b-ubuntu22.04-py3.10-multiarch.tar
+          name: cann-8.5.1-910b-ubuntu22.04-py3.10-aarch64
+          path: /tmp/cann-8.5.1-910b-ubuntu22.04-py3.10-aarch64.tar
           retention-days: 3
 
   build-push-digest:
